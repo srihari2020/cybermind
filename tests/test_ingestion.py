@@ -30,6 +30,19 @@ def test_split_into_chunks():
     assert all(chunks)
 
 
+def test_split_into_chunks_preserves_overlap_without_tiny_boundary_chunks():
+    chunks = split_into_chunks(
+        "abcdefghij klmnopqrst uvwxyz",
+        chunk_size=10,
+        overlap=3,
+    )
+
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 10 for chunk in chunks)
+    assert all(len(chunk) > 3 for chunk in chunks[:-1])
+    assert any(left[-3:] == right[:3] for left, right in zip(chunks, chunks[1:]))
+
+
 def test_split_empty_text():
     assert split_into_chunks("   ") == []
 
@@ -91,5 +104,18 @@ def test_ingest_rejects_unsupported_file(tmp_path):
             document,
             source_id="test-pdf",
             title="Test PDF",
+            publisher="CyberMind Test",
+        )
+
+
+def test_ingest_rejects_empty_file(tmp_path):
+    document = tmp_path / "empty.txt"
+    document.write_text(" \n\t", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Document is empty"):
+        ingest_file(
+            document,
+            source_id="empty",
+            title="Empty",
             publisher="CyberMind Test",
         )

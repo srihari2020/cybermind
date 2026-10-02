@@ -51,7 +51,7 @@ def split_into_chunks(
         if end < len(text):
             boundary = text.rfind(" ", start, end)
 
-            if boundary > start:
+            if boundary > start + overlap:
                 end = boundary
 
         chunk = text[start:end].strip()

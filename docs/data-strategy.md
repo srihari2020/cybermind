@@ -316,6 +316,9 @@ Knowledge store / Training generation
 
 Raw data must never be silently overwritten.
 
+The local `.txt`/`.md` ingestion CLI, source identity rules, and JSONL
+duplicate handling are documented in [Ingestion](ingestion.md).
+
 ---
 
 # 10. Raw Data
