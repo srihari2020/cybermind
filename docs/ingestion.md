@@ -60,7 +60,8 @@ for CLI compatibility; writes now always preserve unrelated sources.
 - Only local UTF-8 `.txt` and `.md` files are supported; PDF, HTML, OCR, and
   remote fetching are not implemented.
 - Chunks are sized by characters and prefer whitespace boundaries; semantic
-  section-aware splitting and embeddings are future work.
+  section-aware splitting remains future work. See [retrieval.md](retrieval.md)
+  for local semantic search and index maintenance.
 - JSONL replacement is atomic per write, but simultaneous writers are not
   coordinated. Use a single ingestion process per output file.
 - The repository's `data/raw/security.md` is a generic project sample, not an
