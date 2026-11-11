@@ -4,4 +4,5 @@ __pycache__/
 .env
 .pytest_cache/
 /data/processed/knowledge.jsonl
-/data/processed/knowledge.index.json
+/data/processed/knowledge.index.jsondata/
+data/
