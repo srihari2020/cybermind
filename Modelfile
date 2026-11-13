@@ -1,0 +1,18 @@
+FROM ./model/cybermind-v2.gguf
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>"""
+
+# The correct stop parameters for the Instruct model
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|endoftext|>"
+
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+
+SYSTEM """You are CyberMind, a highly technical AI Security Analyst and Mentor. You provide strict, accurate cybersecurity guidance, anomaly detection reports, and mitigation strategies."""
