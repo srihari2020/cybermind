@@ -1,73 +1,82 @@
-from contextlib import asynccontextmanager
+import joblib
+import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
-from pathlib import Path
 from openai import OpenAI
-from sentence_transformers import SentenceTransformer
-from knowledge.retrieval.index import PersistentVectorIndex
-from knowledge.ingestion.parsers import parse_cisa_kev, parse_mitre_enterprise
 
-# Global state to keep the models loaded in VRAM/RAM
-ml_engine = {}
+app = FastAPI(title="CyberMind Unified Intelligence API")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("🚀 Initializing CyberMind AI Engine in Memory...")
-    ml_engine["client"] = OpenAI(base_url="http://localhost:11434/v1", api_key="cybermind-local")
-    ml_engine["embedder"] = SentenceTransformer("BAAI/bge-small-en-v1.5")
-    ml_engine["index"] = PersistentVectorIndex(Path('data/processed/knowledge.index.json'))
+# 1. Load the ML Engine (Scikit-Learn)
+try:
+    ml_model = joblib.load("model/ml_engine/network_rf_model.pkl")
+    print("✅ Traditional ML Engine loaded successfully.")
+except Exception as e:
+    print(f"❌ Failed to load ML model: {e}")
+
+# 2. Connect the LLM Engine (Ollama/Qwen)
+llm_client = OpenAI(base_url="http://localhost:11434/v1", api_key="cybermind-local")
+LLM_MODEL = "qwen3.5:4b"
+
+# 3. Define the incoming Network Telemetry data structure
+class NetworkTelemetry(BaseModel):
+    packet_size: float
+    destination_port: int
+    connection_duration: float
+    failed_logins: int
+    bytes_transferred: float
+
+@app.post("/api/analyze_traffic")
+async def analyze_traffic(data: NetworkTelemetry):
+    # STEP A: ML Engine analyzes the raw numbers in less than a millisecond
+    features = np.array([[
+        data.packet_size,
+        data.destination_port,
+        data.connection_duration,
+        data.failed_logins,
+        data.bytes_transferred
+    ]])
     
-    # Load raw text into RAM for instant lookup
-    cisa_docs = parse_cisa_kev(Path('data/raw/knowledge/cisa/known_exploited_vulnerabilities.json'))
-    mitre_docs = parse_mitre_enterprise(Path('data/raw/knowledge/mitre_attack/enterprise-attack.json'))
-    ml_engine["all_docs"] = {doc["source_id"]: doc["content"] for doc in cisa_docs + mitre_docs}
+    prediction = ml_model.predict(features)[0]
+    is_malicious = bool(prediction == 1)
     
-    print("✅ CyberMind Engine Ready! Listening for requests...")
-    yield
-    ml_engine.clear()
-
-app = FastAPI(title="CyberMind API", lifespan=lifespan)
-
-class ChatRequest(BaseModel):
-    query: str
-
-@app.post("/api/chat")
-def chat_endpoint(request: ChatRequest):
-    # 1. Semantic Search
-    bge_instruction = "Represent this sentence for searching relevant passages: "
-    query_vector = ml_engine["embedder"].encode(bge_instruction + request.query, normalize_embeddings=True)
-    matches = ml_engine["index"].search(query_vector, top_k=3)
-    
-    # 2. Extract Context
-    evidence_texts = []
-    sources_used = []
-    for match in matches:
-        if match.source_id in ml_engine["all_docs"]:
-            safe_text = ml_engine["all_docs"][match.source_id][:1000]
-            evidence_texts.append(f"Source ID: {match.source_id}\nContent: {safe_text}")
-            sources_used.append(match.source_id)
-            
-    context_block = "\n\n".join(evidence_texts)
-    
-    # 3. LLM Generation
-    system_prompt = (
-        "You are CyberMind, a cybersecurity AI. "
-        "Use the provided Evidence Context to answer the user's question. "
-        "If the answer is not in the context, explicitly state 'I do not have enough evidence.' "
-        "Be concise and cite the Source IDs."
+    # If the ML Engine says it's safe, we return instantly without waking up the LLM
+    if not is_malicious:
+        return {
+            "status": "SAFE",
+            "alert": "Normal traffic patterns detected.",
+            "incident_report": None
+        }
+        
+    # STEP B: If Malicious, the Orchestration Layer triggers the LLM for analysis
+    threat_context = (
+        f"Anomaly detected! Destination Port: {data.destination_port}, "
+        f"Failed Logins: {data.failed_logins}, Packet Size: {data.packet_size} bytes."
     )
     
-    response = ml_engine["client"].chat.completions.create(
-        model="qwen3.5:4b",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Evidence Context:\n{context_block}\n\nQuestion: {request.query}"}
-        ],
-        temperature=0.1
+    system_prompt = "You are CyberMind, an expert AI Security Analyst. Write a highly technical, concise incident response report."
+    user_prompt = (
+        f"Network Telemetry Alert: {threat_context}\n\n"
+        "Task: Identify the likely MITRE ATT&CK technique (e.g., Brute Force, Exfiltration) based on these metrics, "
+        "and recommend three immediate mitigation steps for the firewall."
     )
     
+    # Generate the report
+    try:
+        response = llm_client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.2
+        )
+        incident_report = response.choices[0].message.content.strip()
+    except Exception as e:
+        incident_report = f"LLM Generation Failed: {str(e)}"
+        
+    # STEP C: Return the Unified Response
     return {
-        "query": request.query,
-        "answer": response.choices[0].message.content,
-        "sources": sources_used
+        "status": "CRITICAL_ALERT",
+        "alert": "Malicious attack detected by ML Engine.",
+        "incident_report": incident_report
     }
