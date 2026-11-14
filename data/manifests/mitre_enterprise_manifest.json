@@ -1,0 +1,10 @@
+{
+  "dataset_id": "mitre_enterprise",
+  "name": "MITRE ATT&CK Enterprise STIX",
+  "downloaded_at": "2026-11-11T14:10:23.024925+00:00",
+  "source_url": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack.json",
+  "license": "Apache-2.0 / MITRE Terms",
+  "sha256": "539a843a7b53ed9749740b2123dddae3726b1a4831841c32aca740b011b910b5",
+  "size_bytes": 55277605,
+  "local_path": "data/raw/knowledge/mitre_attack/enterprise-attack.json"
+}

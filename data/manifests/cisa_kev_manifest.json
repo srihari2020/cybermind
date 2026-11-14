@@ -1,0 +1,10 @@
+{
+  "dataset_id": "cisa_kev",
+  "name": "CISA Known Exploited Vulnerabilities",
+  "downloaded_at": "2026-11-11T14:08:43.505128+00:00",
+  "source_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+  "license": "Public Domain",
+  "sha256": "41c8091ad62d508d6f8906ad5cd26b20efe551f7d51b95ecc8a6981fa640b4ea",
+  "size_bytes": 1850831,
+  "local_path": "data/raw/knowledge/cisa/known_exploited_vulnerabilities.json"
+}
