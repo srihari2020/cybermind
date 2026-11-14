@@ -59,8 +59,4 @@ cd cybermind
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-git lfs install
-git clone [https://huggingface.co/Srihari2020/CyberMind-4B-GGUF](https://huggingface.co/Srihari2020/CyberMind-4B-GGUF)
-ollama create cybermind-4b -f CyberMind-4B-GGUF/Modelfile
-ollama run cybermind-4b
 
